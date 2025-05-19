@@ -62,11 +62,7 @@ jobs:
       - name: Upload to Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ~/AnyKernel3
         run: |
-          cd ~/AnyKernel3
-          TAG="auto-$(date +%Y%m%d-%H%M)"
-          gh release create "$TAG" twrp-rodin.zip -t "TWRP for Rodin - $TAG" -n "Automated build"          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd ~/AnyKernel3
           TAG="auto-$(date +%Y%m%d-%H%M)"
           gh release create "$TAG" twrp-rodin.zip -t "TWRP for Rodin - $TAG" -n "Automated build"
