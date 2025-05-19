@@ -1,51 +1,62 @@
-name: TWRP Builder
+name: Build TWRP for Rodin
+
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build TWRP
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git-core gnupg flex bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
-            lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip bc python2
+          sudo apt install -y bc bison build-essential curl flex git-core gnupg gperf libncurses5-dev libssl-dev \
+            libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev imagemagick \
+            liblz4-tool lib32z1 lib32ncurses6 lib32stdc++6 openjdk-8-jdk repo python2 x11proto-core-dev libx11-dev
 
-      - name: Set up repo
+      - name: Set up repo tool
         run: |
-          mkdir ~/bin || true
+          mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> $GITHUB_ENV
+          echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Initialize and sync source
+      - name: Initialize TWRP repo
         run: |
           mkdir -p ~/twrp && cd ~/twrp
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
-          repo sync -j$(nproc) --force-sync
 
-      - name: Clone device tree
+      - name: Clone Rodin device tree
         run: |
           cd ~/twrp
           git clone https://github.com/tiixman/twrp_builder_rodin.git device/xiaomi/rodin
 
-      - name: Build recovery image
+      - name: Sync source
+        run: |
+          cd ~/twrp
+          repo sync -j$(nproc) --force-sync
+
+      - name: Build TWRP
         run: |
           cd ~/twrp
           source build/envsetup.sh
           lunch twrp_rodin-eng
           mka recoveryimage
 
-      - name: Upload recovery image
+      - name: Prepare AnyKernel3 ZIP
+        run: |
+          cd ~
+          git clone https://github.com/osm0sis/AnyKernel3.git
+          cp ~/twrp/out/target/product/rodin/recovery.img AnyKernel3/
+          cd AnyKernel3
+          zip -r9 twrp-rodin.zip * -x .git README.md
+
+      - name: Upload twrp-rodin.zip
         uses: actions/upload-artifact@v3
         with:
           name: twrp-rodin
-          path: ~/twrp/out/target/product/rodin/recovery.img
+          path: AnyKernel3/twrp-rodin.zip
