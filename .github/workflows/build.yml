@@ -58,7 +58,7 @@ jobs:
           zip -r9 twrp-rodin.zip * -x .git README.md
 
       - name: Upload TWRP ZIP
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@3f2c276e5eb8e20f86d7a92a206c34c8f33460d8
         with:
           name: twrp-rodin
           path: ~/AnyKernel3/twrp-rodin.zip
