@@ -1,44 +1,45 @@
-name: Build TWRP for Rodin
+name: TWRP Builder
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build TWRP for Rodin
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y bc bison build-essential curl flex git-core gnupg gperf libncurses5-dev libssl-dev \
-            libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev imagemagick \
-            liblz4-tool lib32z1 lib32ncurses6 lib32stdc++6 openjdk-8-jdk repo python2 x11proto-core-dev libx11-dev
+          sudo apt install -y git-core gnupg flex bison \
+            build-essential zip curl zlib1g-dev gcc-multilib \
+            g++-multilib libc6-dev-i386 lib32ncurses5-dev \
+            x11proto-core-dev libx11-dev lib32z1-dev \
+            libgl1-mesa-dev libxml2-utils xsltproc unzip bc
 
-      - name: Set up repo tool
+      - name: Set up repo
         run: |
-          mkdir -p ~/bin
+          mkdir ~/bin || true
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
+          echo 'export PATH=~/bin:$PATH' >> $GITHUB_ENV
 
-      - name: Initialize TWRP repo
+      - name: Init and sync source
         run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
           mkdir -p ~/twrp && cd ~/twrp
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
-
-      - name: Clone Rodin device tree
-        run: |
-          cd ~/twrp
-          git clone https://github.com/tiixman/twrp_builder_rodin.git device/xiaomi/rodin
-
-      - name: Sync source
-        run: |
-          cd ~/twrp
           repo sync -j$(nproc) --force-sync
+
+      - name: Clone device tree
+        run: |
+          cd ~/twrp
+          git clone https://github.com/tiixman/device_xiaomi_rodin.git -b twrp device/xiaomi/rodin
 
       - name: Build TWRP
         run: |
@@ -47,15 +48,14 @@ jobs:
           lunch twrp_rodin-eng
           mka recoveryimage
 
-      - name: Prepare AnyKernel3 ZIP
+      - name: Copy recovery to AnyKernel3
         run: |
-          cd ~
-          git clone https://github.com/osm0sis/AnyKernel3.git
+          mkdir -p AnyKernel3
           cp ~/twrp/out/target/product/rodin/recovery.img AnyKernel3/
           cd AnyKernel3
-          zip -r9 twrp-rodin.zip * -x .git README.md
+          zip -r9 twrp-rodin.zip *
 
-      - name: Upload twrp-rodin.zip
+      - name: Upload TWRP ZIP
         uses: actions/upload-artifact@v3
         with:
           name: twrp-rodin
