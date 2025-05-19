@@ -19,12 +19,12 @@ jobs:
             zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev \
             libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc
 
-      - name: Set up repo
+      - name: Set up repo tool
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> $GITHUB_ENV
+          echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Initialize TWRP source
         run: |
@@ -37,10 +37,12 @@ jobs:
 
       - name: Download and extract device tree (ZIP)
         run: |
+          mkdir -p ~/twrp/device/xiaomi/rodin
           cd ~/twrp/device/xiaomi
-          mkdir -p rodin
           wget https://github.com/tiixman/twrp_builder_rodin/releases/download/1.0/device_tree_Poco_x7_pro.zip -O tree.zip
-          unzip tree.zip -d rodin
+          unzip tree.zip -d temp_tree
+          mv temp_tree/rodin/* rodin/
+          rm -rf temp_tree tree.zip
 
       - name: Build TWRP
         run: |
@@ -56,6 +58,9 @@ jobs:
           cp ~/twrp/out/target/product/rodin/recovery.img ~/AnyKernel3/recovery.img
           cd ~/AnyKernel3
           zip -r9 twrp-rodin.zip * -x .git README.md
+
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Upload to Release
         env:
