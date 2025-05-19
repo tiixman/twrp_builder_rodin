@@ -15,9 +15,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git-core gnupg flex bison build-essential zip curl zlib1g-dev gcc-multilib g++-multilib \
-            libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils \
-            xsltproc unzip python3 python-is-python3
+          sudo apt install -y git gh curl zip unzip git-core gnupg flex bison build-essential \
+            zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev \
+            libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc
 
       - name: Set up repo
         run: |
@@ -57,8 +57,10 @@ jobs:
           cd ~/AnyKernel3
           zip -r9 twrp-rodin.zip * -x .git README.md
 
-      - name: Upload TWRP ZIP
-        uses: actions/upload-artifact@3f2c276e5eb8e20f86d7a92a206c34c8f33460d8
-        with:
-          name: twrp-rodin
-          path: ~/AnyKernel3/twrp-rodin.zip
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd ~/AnyKernel3
+          TAG="auto-$(date +%Y%m%d-%H%M)"
+          gh release create "$TAG" twrp-rodin.zip -t "TWRP for Rodin - $TAG" -n "Automated build"
